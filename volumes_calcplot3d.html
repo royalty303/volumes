@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volumes de révolution — CalcPlot3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f5f5f0;
+      --panel-bg:  #ffffff;
+      --border:    #e8e8e3;
+      --text:      #1a1a1a;
+      --text-sub:  #555550;
+      --text-muted:#999990;
+      --accent:    #dd4b16;
+      --accent-h:  #c23c0a;
+      --accent2:   #5c3d99;
+      --input-bg:  #fafaf7;
+      --input-bdr: #d8d8d0;
+      --focus:     #dd4b16;
+      --pill-bg:   #f0efea;
+      --pill-act:  #fff3ef;
+      --pill-bdr-act: #dd4b16;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+      --radius:    10px;
+      --radius-sm: 6px;
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #dd4b16, #b03010);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      color: white;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      box-shadow: 0 2px 6px rgba(221,75,22,0.35);
+    }
+    header h1 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    header .badge {
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--pill-bg);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── Layout ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Panneau ── */
+    .panel {
+      width: 310px;
+      flex-shrink: 0;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border);
+      padding: 20px 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .panel::-webkit-scrollbar { width: 4px; }
+    .panel::-webkit-scrollbar-track { background: transparent; }
+    .panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Sections ── */
+    .section {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section:last-child { border-bottom: none; }
+    .section-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── Labels & inputs ── */
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+      margin-top: 10px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 8px 11px;
+      border: 1.5px solid var(--input-bdr);
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-family: 'Inter', monospace;
+      background: var(--input-bg);
+      color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+    }
+    input[type="text"] {
+      font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+      font-size: 0.92rem;
+      letter-spacing: 0.01em;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--focus);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(221,75,22,0.1), inset 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .hint {
+      font-size: 0.69rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* ── Toggle checkbox ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-row input[type="checkbox"] {
+      width: auto;
+      cursor: pointer;
+      accent-color: var(--accent);
+      width: 14px;
+      height: 14px;
+    }
+    .f2-hidden { display: none; }
+    .f2-block { margin-top: 6px; }
+
+    /* ── Axis buttons ── */
+    .axis-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .axis-btn {
+      padding: 9px 8px;
+      border: 1.5px solid var(--input-bdr);
+      border-radius: var(--radius-sm);
+      background: var(--pill-bg);
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      font-family: 'Inter', sans-serif;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .axis-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--pill-act);
+    }
+    .axis-btn.active {
+      border-color: var(--accent);
+      background: var(--pill-act);
+      color: var(--accent);
+      font-weight: 600;
+      box-shadow: 0 0 0 3px rgba(221,75,22,0.08);
+    }
+
+    /* ── Formule ── */
+    .formula-card {
+      background: #fafaf7;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 13px;
+      font-size: 0.79rem;
+      color: var(--text-sub);
+      line-height: 1.7;
+    }
+    .formula-card .method-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .formula-card .formula-line {
+      font-family: 'SFMono-Regular', 'Consolas', monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    /* ── Bouton principal ── */
+    .btn-visualize {
+      width: 100%;
+      padding: 11px;
+      background: linear-gradient(135deg, #dd4b16 0%, #c23c0a 100%);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.92rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.18s;
+      box-shadow: 0 2px 8px rgba(221,75,22,0.3), 0 1px 2px rgba(0,0,0,0.1);
+      letter-spacing: 0.01em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+    .btn-visualize:hover {
+      background: linear-gradient(135deg, #e85820 0%, #d04010 100%);
+      box-shadow: 0 4px 14px rgba(221,75,22,0.4), 0 1px 3px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+    }
+    .btn-visualize:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 4px rgba(221,75,22,0.25);
+    }
+    .btn-icon { font-size: 1.05rem; }
+
+    /* ── Erreur ── */
+    .error-msg {
+      background: #fff5f2;
+      border: 1.5px solid #f0a090;
+      border-radius: var(--radius-sm);
+      color: #b03010;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+      display: none;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    /* ── Note de bas ── */
+    .panel-note {
+      font-size: 0.67rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      padding-top: 14px;
+    }
+    .panel-note a { color: var(--text-muted); }
+
+    /* ── Zone de visualisation ── */
+    .viz-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      position: relative;
+    }
+
+    .viz-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      gap: 16px;
+      padding: 40px;
+    }
+    .placeholder-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #f0efea, #e8e7e0);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+    .placeholder-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+    .placeholder-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.6;
+    }
+
+    #calcplot-iframe {
+      flex: 1;
+      border: none;
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .attribution {
+      background: var(--panel-bg);
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.67rem;
+      padding: 5px 14px;
+      text-align: right;
+      flex-shrink: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    .attribution a { color: var(--accent); text-decoration: none; }
+    .attribution a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="header-brand">
+    <div class="header-icon">∫</div>
+    <h1>Volumes de révolution</h1>
+  </div>
+  <span class="badge">CalcPlot3D · Interactif</span>
+</header>
+
+<div class="main">
+
+  <!-- ── Panneau de contrôle ── -->
+  <div class="panel">
+
+    <!-- Fonctions -->
+    <div class="section">
+      <div class="section-title">Fonctions</div>
+      <label>f(x) — courbe extérieure</label>
+      <input type="text" id="f1" value="1/x" placeholder="ex. : x^2, sin(x), sqrt(x)">
+      <div class="hint">^ pour la puissance · sqrt() · sin() · cos() · ln() · exp()</div>
+
+      <label class="toggle-row">
+        <input type="checkbox" id="toggle-f2">
+        Ajouter g(x) — courbe intérieure
+      </label>
+      <div id="f2-block" class="f2-hidden f2-block">
+        <label>g(x)</label>
+        <input type="text" id="f2" value="0" placeholder="ex. : x/2, 1/x^2">
+        <div class="hint">Doit être &lt; f(x) sur [a, b] pour former une rondelle</div>
+      </div>
+    </div>
+
+    <!-- Bornes -->
+    <div class="section">
+      <div class="section-title">Bornes d'intégration</div>
+      <div class="row">
+        <div>
+          <label>a — borne inf.</label>
+          <input type="number" id="a" value="1" step="0.5">
+        </div>
+        <div>
+          <label>b — borne sup.</label>
+          <input type="number" id="b" value="3" step="0.5">
+        </div>
+      </div>
+    </div>
+
+    <!-- Axe -->
+    <div class="section">
+      <div class="section-title">Axe de rotation</div>
+      <div class="axis-group">
+        <button class="axis-btn active" id="btn-axis-y" onclick="setAxis('y')">Axe des <em>y</em></button>
+        <button class="axis-btn" id="btn-axis-x" onclick="setAxis('x')">Axe des <em>x</em></button>
+      </div>
+    </div>
+
+    <!-- Formule -->
+    <div class="section">
+      <div class="section-title">Rappel de formule</div>
+      <div class="formula-card" id="formula-box">
+        <div class="method-name" id="method-name">—</div>
+        <div class="formula-line" id="formula-line">—</div>
+      </div>
+    </div>
+
+    <!-- Bouton -->
+    <div class="section">
+      <button class="btn-visualize" onclick="lancerVisualisation()">
+        <span class="btn-icon">▶</span> Visualiser
+      </button>
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <!-- Note -->
+    <div class="panel-note">
+      Connexion internet requise. Visualisation fournie par <a href="https://c3d.libretexts.org/CalcPlot3D/index.html" target="_blank">CalcPlot3D</a> (Paul Seeburger, Monroe CC · NSF-IUSE).
+    </div>
+
+  </div>
+
+  <!-- ── Zone de visualisation ── -->
+  <div class="viz-area">
+    <div class="viz-placeholder" id="placeholder">
+      <div class="placeholder-icon">∮</div>
+      <div class="placeholder-title">Aucune visualisation active</div>
+      <div class="placeholder-sub">Entrez une fonction et les bornes d'intégration, choisissez l'axe de rotation, puis cliquez sur <strong>Visualiser</strong>.</div>
+    </div>
+    <iframe id="calcplot-iframe" allowfullscreen></iframe>
+    <div class="attribution">
+      Visualisation : <a href="https://c3d.libretexts.org/CalcPlot3D/index.html" target="_blank">CalcPlot3D</a> — Paul Seeburger, Monroe Community College (NSF-IUSE #1524968)
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let currentAxis = 'y';
+
+  function setAxis(ax) {
+    currentAxis = ax;
+    document.getElementById('btn-axis-y').classList.toggle('active', ax === 'y');
+    document.getElementById('btn-axis-x').classList.toggle('active', ax === 'x');
+    updateFormula();
+  }
+
+  document.getElementById('toggle-f2').addEventListener('change', function () {
+    document.getElementById('f2-block').classList.toggle('f2-hidden', !this.checked);
+    updateFormula();
+  });
+
+  function updateFormula() {
+    const hasF2 = document.getElementById('toggle-f2').checked;
+    const f1 = document.getElementById('f1').value || 'f(x)';
+    const f2 = document.getElementById('f2').value || 'g(x)';
+    const nameEl = document.getElementById('method-name');
+    const lineEl = document.getElementById('formula-line');
+
+    if (currentAxis === 'y') {
+      nameEl.textContent = hasF2 ? 'Tubes — rotation autour de y' : 'Tubes — rotation autour de y';
+      lineEl.innerHTML = hasF2
+        ? `V = 2π ∫<sub>a</sub><sup>b</sup> x [${f1} − ${f2}] dx`
+        : `V = 2π ∫<sub>a</sub><sup>b</sup> x · ${f1} dx`;
+    } else {
+      nameEl.textContent = hasF2 ? 'Rondelles — rotation autour de x' : 'Disques — rotation autour de x';
+      lineEl.innerHTML = hasF2
+        ? `V = π ∫<sub>a</sub><sup>b</sup> [(${f1})² − (${f2})²] dx`
+        : `V = π ∫<sub>a</sub><sup>b</sup> [${f1}]² dx`;
+    }
+  }
+
+  function toCalcPlot(expr) {
+    return expr
+      .replace(/\s+/g, '')
+      .replace(/\*\*/g, '^')
+      .replace(/arcsin/g, 'asin')
+      .replace(/arccos/g, 'acos')
+      .replace(/arctan/g, 'atan');
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg;
+  }
+
+  function buildCalcPlotURL(f1, f2, a, b, axis) {
+    const top = toCalcPlot(f1);
+    const bot = f2 ? toCalcPlot(f2) : '0';
+
+    const windowParams = [
+      'type=window',
+      'hsrmode=0',
+      'nomidpts=true',
+      'anaglyph=-1',
+      'center=5,3,10',
+      'focus=0,0,0,1',
+      'up=0,2,0',
+      'transparent=false',
+      'alpha=140',
+      'twoviews=false',
+      'unlinkviews=false',
+      'axisextension=0.7',
+      'xaxislabel=x',
+      'yaxislabel=y',
+      'zaxislabel=z',
+      'edgeson=true',
+      'faceson=true',
+      'showbox=false',
+      'showaxes=true',
+      'showticks=true',
+      'perspective=true',
+      'centerxpercent=0.5',
+      'centerypercent=0.5',
+      'rotationsteps=30',
+      'autospin=false',
+      'xygrid=false',
+      'yzgrid=false',
+      'xzgrid=false',
+      'gridsonbox=true',
+      'gridplanes=false',
+      'gridcolor=rgb(180,180,170)',
+      `xmin=${Math.min(-1, a - 1)}`,
+      `xmax=${Math.max(4, b + 1)}`,
+      `ymin=${-Math.abs(b)}`,
+      `ymax=${Math.abs(b)}`,
+      `zmin=${-Math.abs(b)}`,
+      `zmax=${Math.abs(b)}`,
+      'xscale=1',
+      'yscale=1',
+      'zscale=1',
+      'zoom=0.65',
+      'xscalefactor=1',
+      'yscalefactor=1',
+      'zscalefactor=1',
+      'rotatestart=0',
+      'rotatedirectionx=1',
+      'rotatedirectiony=0',
+      'hidexysliders=true',
+      'hidetracevalue=true',
+      'hidetracepoint=true',
+      'hideaxisofrev=false',
+      'bgcolor=rgb(252,252,248)',
+      'bgopaque=true'
+    ].join(';');
+
+    const volParams = [
+      'type=volrev',
+      `volrev=${axis}`,
+      'visible=true',
+      'alpha=-1',
+      'view=0',
+      `top2d=${top}`,
+      `bot2d=${bot}`,
+      `umin=${a}`,
+      `umax=${b}`,
+      `axisvar=${axis}`,
+      'axisval=0',
+      'revsliderval=1',
+      'grid=15,40',
+      'polarform=false'
+    ].join(';');
+
+    return `https://c3d.libretexts.org/CalcPlot3D/dynamicFigureWCP/index.html?${volParams}&${windowParams}`;
+  }
+
+  function lancerVisualisation() {
+    showError('');
+    const f1 = document.getElementById('f1').value.trim();
+    const f2raw = document.getElementById('f2').value.trim();
+    const a = parseFloat(document.getElementById('a').value);
+    const b = parseFloat(document.getElementById('b').value);
+    const hasF2 = document.getElementById('toggle-f2').checked;
+    const f2 = hasF2 ? f2raw : null;
+
+    if (!f1) return showError('Veuillez entrer une fonction f(x).');
+    if (isNaN(a) || isNaN(b)) return showError('Les bornes a et b doivent être des nombres.');
+    if (a >= b) return showError('La borne a doit être strictement inférieure à b.');
+
+    const url = buildCalcPlotURL(f1, f2, a, b, currentAxis);
+    const iframe = document.getElementById('calcplot-iframe');
+    iframe.src = url;
+    iframe.style.display = 'block';
+    document.getElementById('placeholder').style.display = 'none';
+    updateFormula();
+  }
+
+  updateFormula();
+  ['f1', 'f2'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateFormula);
+  });
+</script>
+
+</body>
+</html>
