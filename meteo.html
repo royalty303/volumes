@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atmos</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+:root {
+  --bg: #101114;
+  --panel: #17191d;
+  --panel-2: #202329;
+  --panel-3: #292d35;
+  --text: #f7f4ed;
+  --muted: #a9a9ad;
+  --dim: #70727a;
+  --line: rgba(255,255,255,.1);
+  --line-2: rgba(255,255,255,.17);
+  --hot: #ff6b35;
+  --warm: #f7c843;
+  --cool: #57b6ff;
+  --rain: #4bc3ff;
+  --green: #4bd08b;
+  --violet: #a78bfa;
+  --danger: #ff4f64;
+  --radius: 8px;
+  --shadow: 0 18px 55px rgba(0,0,0,.35);
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255,107,53,.24), transparent 28rem),
+    radial-gradient(circle at 80% 8%, rgba(75,195,255,.15), transparent 26rem),
+    linear-gradient(145deg, #14151a 0%, #0e1013 50%, #17130f 100%);
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+.app {
+  width: min(1180px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 24px 0 34px;
+}
+header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(30px, 6vw, 62px);
+  line-height: .92;
+  letter-spacing: 0;
+}
+.subhead {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.search {
+  display: grid;
+  grid-template-columns: minmax(190px, 290px) auto;
+  gap: 8px;
+  align-items: center;
+}
+.search input {
+  width: 100%;
+  color: var(--text);
+  background: rgba(255,255,255,.08);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  padding: 11px 12px;
+  outline: none;
+}
+.search input:focus {
+  border-color: rgba(75,195,255,.8);
+  box-shadow: 0 0 0 3px rgba(75,195,255,.15);
+}
+.btn {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.06));
+  min-height: 42px;
+  padding: 0 14px;
+}
+.btn:hover { border-color: rgba(255,255,255,.34); }
+.status {
+  grid-column: 1 / -1;
+  min-height: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.suggestions {
+  grid-column: 1 / -1;
+  display: none;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.suggestions.show { display: flex; }
+.suggestion {
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(255,255,255,.075);
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.suggestion:hover { border-color: rgba(75,195,255,.7); }
+.layout {
+  display: grid;
+  grid-template-columns: 390px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.stack { display: grid; gap: 14px; }
+.panel {
+  background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.035)), var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.panel.pad { padding: 16px; }
+.hero {
+  min-height: 0;
+  padding: 22px;
+  display: grid;
+  gap: 16px;
+  background:
+    linear-gradient(145deg, rgba(255,98,42,.98), rgba(249,177,42,.86) 55%, rgba(91,173,255,.78)),
+    var(--panel);
+}
+.place-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.place-row > div { min-width: 0; }
+.place {
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.coords {
+  margin-top: 5px;
+  font-size: 12px;
+  opacity: .83;
+}
+.time {
+  text-align: right;
+  font-size: 12px;
+  opacity: .86;
+  flex: 0 1 auto;
+  min-width: 82px;
+}
+.temp-now {
+  font-size: 104px;
+  font-weight: 850;
+  line-height: .82;
+  letter-spacing: 0;
+}
+.feels {
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: 750;
+}
+.condition {
+  margin-top: 4px;
+  font-size: 14px;
+}
+.alert {
+  display: inline-block;
+  margin-top: 17px;
+  max-width: 100%;
+  background: rgba(15,16,18,.58);
+  border-radius: 6px;
+  color: #fff;
+  padding: 9px 11px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+.hero-insights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
+}
+.hero-pill {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 7px;
+  background: rgba(15,16,18,.24);
+  border: 1px solid rgba(255,255,255,.14);
+}
+.hero-pill .label {
+  display: block;
+  color: rgba(255,255,255,.72);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.hero-pill .value {
+  display: block;
+  margin-top: 3px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 850;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero-pill .detail {
+  display: block;
+  margin-top: 2px;
+  color: rgba(255,255,255,.72);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 22px;
+}
+.hero-current {
+  display: grid;
+  gap: 14px;
+}
+.hero .metric {
+  background: rgba(15,16,18,.18);
+  border-color: rgba(255,255,255,.14);
+  padding: 10px;
+}
+.hero .metric .k,
+.hero .metric .d {
+  color: rgba(255,255,255,.72);
+}
+.hero .metric .v {
+  color: #fff;
+  font-size: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero .metric .d {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero .panel-mini {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.hero .panel-mini .mini-head {
+  color: rgba(255,255,255,.75);
+}
+.hero-metric {
+  min-width: 0;
+  color: rgba(255,255,255,.92);
+}
+.hero-metric .label {
+  display: block;
+  font-size: 11px;
+  opacity: .74;
+  white-space: nowrap;
+}
+.hero-metric .value {
+  display: block;
+  margin-top: 2px;
+  font-size: 19px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+.section-title h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.section-title span {
+  color: var(--dim);
+  font-size: 12px;
+}
+.hourly-wrap {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.hourly-chart {
+  position: relative;
+  width: 1040px;
+  height: 230px;
+}
+.chart-svg {
+  position: absolute;
+  inset: 0 0 58px 0;
+  width: 100%;
+  height: 172px;
+  overflow: visible;
+}
+.hour-grid {
+  position: absolute;
+  inset: 0 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 0;
+  align-items: stretch;
+}
+.hour-cell {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 24px 1fr 26px 24px;
+  justify-items: center;
+  align-items: end;
+  padding: 0 4px;
+}
+.hour-temp {
+  color: #f6d65b;
+  font-size: 13px;
+  font-weight: 800;
+}
+.hour-icon {
+  align-self: center;
+  font-size: 18px;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.35));
+}
+.hour-pop {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(75,195,255,.16);
+  color: var(--rain);
+  font-size: 10px;
+  font-weight: 800;
+}
+.hour-time {
+  color: var(--muted);
+  font-size: 11px;
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.statbox {
+  min-width: 0;
+  background: rgba(255,255,255,.055);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+.statbox .k {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.statbox .v {
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.statbox .d {
+  margin-top: 3px;
+  color: var(--dim);
+  font-size: 11px;
+}
+.stat-section {
+  display: grid;
+  gap: 10px;
+}
+.stat-section + .stat-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.stat-section h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.metric {
+  min-width: 0;
+  overflow: hidden;
+  background: rgba(255,255,255,.055);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.metric .k {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.metric .v {
+  margin-top: 5px;
+  font-size: 22px;
+  font-weight: 820;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.metric .d {
+  margin-top: 4px;
+  color: var(--dim);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.daily-chart {
+  position: relative;
+  height: 300px;
+}
+.daily-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.daily-labels {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  pointer-events: none;
+}
+.day-label {
+  display: grid;
+  align-content: end;
+  justify-items: center;
+  gap: 3px;
+  padding-bottom: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.day-label strong {
+  color: var(--text);
+  font-size: 13px;
+}
+.segments {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(92px, 1fr));
+  gap: 8px;
+}
+.segment {
+  background: rgba(255,255,255,.055);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+  min-height: 96px;
+}
+.segment .part {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+.segment .big {
+  margin-top: 9px;
+  font-size: 24px;
+  font-weight: 850;
+}
+.segment .small {
+  margin-top: 5px;
+  color: #d7d8dc;
+  font-size: 12px;
+}
+.segment .small + .small {
+  margin-top: 2px;
+}
+.history-bars {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  align-items: end;
+  min-height: 175px;
+}
+.history-bar {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 7px;
+  align-items: end;
+  min-width: 0;
+}
+.history-track {
+  position: relative;
+  height: 132px;
+  border-radius: 7px;
+  background: rgba(255,255,255,.055);
+  border: 1px solid var(--line);
+}
+.history-range {
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--hot), var(--cool));
+}
+.history-avg {
+  position: absolute;
+  left: 50%;
+  width: 44px;
+  height: 2px;
+  transform: translateX(-50%);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.12);
+}
+.history-meta {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.history-meta strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+}
+.anomaly {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: rgba(75,195,255,.09);
+  color: #d7f2ff;
+  font-size: 13px;
+  line-height: 1.42;
+}
+.radar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.map {
+  position: relative;
+  height: 360px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: #1d2328;
+  border: 1px solid var(--line);
+}
+.tile-layer {
+  position: absolute;
+  inset: 0;
+}
+.tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  image-rendering: auto;
+}
+.map-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: var(--danger);
+  box-shadow: 0 0 0 6px rgba(255,79,100,.25), 0 4px 18px rgba(0,0,0,.45);
+  z-index: 5;
+}
+.radar-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+.range {
+  width: 100%;
+  accent-color: var(--rain);
+}
+.radar-time, .source {
+  color: var(--muted);
+  font-size: 12px;
+}
+.source a { color: #9ddfff; }
+.uv-strip {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 3px;
+  align-items: stretch;
+  min-width: 760px;
+  max-width: 100%;
+  height: 118px;
+}
+.uv-hour {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  gap: 4px;
+  height: 100%;
+}
+.uv-track {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid rgba(255,255,255,.22);
+}
+.uv-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  background: linear-gradient(180deg, #ffd166, #ef476f);
+}
+.uv-val {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+}
+.uv-time {
+  color: var(--dim);
+  font-size: 10px;
+}
+.nowcast-strip {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(48px, 1fr));
+  gap: 4px;
+  min-width: 790px;
+  max-width: 100%;
+  align-items: end;
+  height: 142px;
+}
+.nowcast-slot {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  justify-items: center;
+  gap: 5px;
+  height: 100%;
+}
+.nowcast-mm {
+  color: var(--rain);
+  font-size: 11px;
+  font-weight: 850;
+}
+.nowcast-bar {
+  width: 100%;
+  min-height: 3px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #4bc3ff, #2667ff);
+  opacity: .9;
+}
+.nowcast-icon { font-size: 16px; }
+.nowcast-time {
+  color: var(--dim);
+  font-size: 10px;
+}
+.panel-mini {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.panel-mini .mini-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.panel-mini .mini-head span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.uv-strip.compact {
+  min-width: 0;
+  height: 86px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+.uv-strip.compact .uv-hour:nth-child(n+13) { display: none; }
+.uv-strip.compact .uv-time { font-size: 9px; }
+.nowcast-strip.compact {
+  min-width: 0;
+  height: 94px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+.nowcast-strip.compact .nowcast-slot:nth-child(n+9) { display: none; }
+.nowcast-strip.compact .nowcast-time { font-size: 9px; }
+.nowcast-strip.compact .nowcast-icon { display: none; }
+.mini-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.climate-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.history-table th,
+.history-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+.history-table th:first-child,
+.history-table td:first-child { text-align: left; }
+.history-table th {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.history-table td { color: var(--text); }
+.history-table .muted { color: var(--muted); }
+.dist-chart {
+  position: relative;
+  height: 280px;
+  margin-bottom: 12px;
+}
+.dist-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.compare-card {
+  background: rgba(255,255,255,.055);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.compare-card .city {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.compare-card .temp {
+  margin-top: 8px;
+  font-size: 34px;
+  font-weight: 900;
+}
+.compare-card .row {
+  margin-top: 4px;
+  color: #d7d8dc;
+  font-size: 12px;
+}
+.wide-scroll { overflow-x: auto; }
+.loading, .error {
+  padding: 14px;
+  color: var(--muted);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+.error { color: #ffd1d7; border-color: rgba(255,79,100,.45); }
+@media (max-width: 980px) {
+  header, .layout { grid-template-columns: 1fr; }
+  .search { grid-template-columns: 1fr auto; }
+  .segments { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 620px) {
+  .app { width: min(100% - 18px, 1180px); padding-top: 12px; }
+  .hero { min-height: 310px; padding: 18px; }
+  .temp-now { font-size: 86px; }
+  .hero-metrics, .hero-insights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric-grid, .segments, .comparison-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .map { height: 300px; }
+  .radar-controls { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <div>
+      <h1>Atmos</h1>
+      <p class="subhead">Tableau de bord local inspiré des vues très visuelles de Mercury. Données météo par Open-Meteo, radar par RainViewer.</p>
+    </div>
+    <form class="search" id="search-form">
+      <input id="place-input" type="search" value="G8V 2V3" autocomplete="off" aria-label="Lieu ou ville" placeholder="Ville, code postal ou coordonnées">
+      <button class="btn" type="submit">Chercher</button>
+      <div class="suggestions" id="place-suggestions"></div>
+      <div class="status" id="status">Prêt.</div>
+    </form>
+  </header>
+
+  <div class="layout">
+    <section class="stack">
+      <article class="panel hero" id="hero">
+        <div class="place-row">
+          <div>
+            <div class="place" id="place-name">Trois-Rivières</div>
+            <div class="coords" id="coords">G8V 2V3</div>
+          </div>
+          <div class="time" id="updated">--</div>
+        </div>
+        <div>
+          <div class="temp-now" id="temp-now">--°</div>
+          <div class="feels" id="feels">Ressenti --°</div>
+          <div class="condition" id="condition">Chargement...</div>
+          <div class="alert" id="weather-note">Analyse en cours</div>
+          <div class="hero-insights">
+            <div class="hero-pill"><span class="label">Confort</span><span class="value" id="comfort">--</span><span class="detail" id="comfort-detail">ressenti, rosée</span></div>
+            <div class="hero-pill"><span class="label">Soleil</span><span class="value" id="sun-window">--</span><span class="detail" id="sun-detail">lever / coucher</span></div>
+          </div>
+          <div class="hero-metrics">
+            <div class="hero-metric"><span class="label">Humidité</span><span class="value" id="m-humidity">--%</span></div>
+            <div class="hero-metric"><span class="label">Vent</span><span class="value" id="m-wind">-- km/h</span></div>
+            <div class="hero-metric"><span class="label">UV</span><span class="value" id="m-uv">--</span></div>
+            <div class="hero-metric"><span class="label">Pluie</span><span class="value" id="m-rain">-- mm</span></div>
+          </div>
+        </div>
+        <div class="hero-current">
+          <div class="metric-grid">
+            <div class="metric"><div class="k">Rafales</div><div class="v" id="gusts">--</div><div class="d">pointe prévue maintenant</div></div>
+            <div class="metric"><div class="k">Direction</div><div class="v" id="wind-dir">--</div><div class="d">d'où vient le vent</div></div>
+            <div class="metric"><div class="k">Point de rosée</div><div class="v" id="dewpoint">--</div><div class="d">air lourd si élevé</div></div>
+            <div class="metric"><div class="k">Prochaine pleine lune</div><div class="v" id="moon-next">--</div><div class="d" id="moon-next-detail">--</div></div>
+          </div>
+          <div class="panel-mini">
+            <div class="mini-head"><span>Indice UV</span><span>12 prochaines heures</span></div>
+            <div class="uv-strip compact" id="uv-strip"></div>
+          </div>
+          <div class="panel-mini">
+            <div class="mini-head"><span>Pluie imminente</span><span>2 prochaines heures · 15 min</span></div>
+            <div class="nowcast-strip compact" id="nowcast-strip"></div>
+            <div class="mini-note" id="nowcast-note">Analyse des précipitations aux 15 minutes.</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="stack">
+      <article class="panel pad">
+        <div class="section-title">
+          <h2>Prévisions par heure</h2>
+          <span>24 prochaines heures</span>
+        </div>
+        <div class="hourly-wrap">
+          <div class="hourly-chart" id="hourly-chart"></div>
+        </div>
+      </article>
+
+      <article class="panel pad">
+        <div class="section-title">
+          <h2>Prévisions quotidiennes</h2>
+          <span>température haute / basse</span>
+        </div>
+        <div class="daily-chart" id="daily-chart"></div>
+      </article>
+
+      <article class="panel pad">
+        <div class="section-title">
+          <h2>Matin, après-midi, soir</h2>
+          <span>48 h</span>
+        </div>
+        <div class="segments" id="segments"></div>
+      </article>
+
+      <article class="panel pad radar">
+        <div class="section-title">
+          <h2>Radar des précipitations</h2>
+          <span>animation RainViewer</span>
+        </div>
+        <div class="map" id="map">
+          <div class="tile-layer" id="base-layer"></div>
+          <div class="tile-layer" id="radar-layer"></div>
+          <div class="map-pin" aria-hidden="true"></div>
+        </div>
+        <div class="radar-controls">
+          <button class="btn" type="button" id="play-radar">Pause</button>
+          <input class="range" type="range" id="radar-range" min="0" max="0" value="0">
+          <div class="radar-time" id="radar-time">--</div>
+        </div>
+        <div class="source">Radar: <a href="https://www.rainviewer.com/" target="_blank" rel="noreferrer">RainViewer</a>. Fond de carte: OpenStreetMap.</div>
+      </article>
+
+      <article class="panel pad">
+        <div class="section-title">
+          <h2>Statistiques descriptives</h2>
+          <span>prévisions et historique</span>
+        </div>
+        <div id="descriptive-stats"></div>
+      </article>
+
+      <article class="panel pad">
+        <div class="section-title">
+          <h2>Historique du jour</h2>
+          <span>5 dernières années</span>
+        </div>
+        <div class="history-bars" id="history"></div>
+        <div class="anomaly" id="anomaly">Comparaison en cours.</div>
+      </article>
+
+      <article class="panel pad">
+        <div class="section-title">
+          <h2>Températures historiques</h2>
+          <span>12 derniers mois</span>
+        </div>
+        <div class="climate-stats">
+          <div class="metric"><div class="k">Moyenne mensuelle</div><div class="v" id="annual-mean">--</div><div class="d">moyenne des 12 moyennes mensuelles</div></div>
+          <div class="metric"><div class="k">Écart-type mensuel</div><div class="v" id="annual-std">--</div><div class="d">dispersion des moyennes mensuelles</div></div>
+        </div>
+        <div class="dist-chart" id="distribution-chart"></div>
+        <div class="mini-note" id="distribution-note">Histogramme : températures moyennes quotidiennes. Les cartes du haut : moyennes mensuelles.</div>
+        <div class="wide-scroll">
+          <table class="history-table" id="climate-table"></table>
+        </div>
+      </article>
+
+      <article class="panel pad">
+        <div class="section-title">
+          <h2>Mode voyage</h2>
+          <span>comparaison avec Trois-Rivières</span>
+        </div>
+        <div class="comparison-grid" id="travel-comparison"></div>
+      </article>
+    </section>
+  </div>
+</main>
+
+<script>
+const DEFAULT_PLACE = {
+  name: "Trois-Rivières",
+  label: "G8V 2V3",
+  latitude: 46.359,
+  longitude: -72.548,
+  country: "Canada"
+};
+
+const els = {
+  form: document.getElementById("search-form"),
+  input: document.getElementById("place-input"),
+  suggestions: document.getElementById("place-suggestions"),
+  status: document.getElementById("status"),
+  place: document.getElementById("place-name"),
+  coords: document.getElementById("coords"),
+  updated: document.getElementById("updated"),
+  tempNow: document.getElementById("temp-now"),
+  feels: document.getElementById("feels"),
+  condition: document.getElementById("condition"),
+  note: document.getElementById("weather-note"),
+  comfort: document.getElementById("comfort"),
+  comfortDetail: document.getElementById("comfort-detail"),
+  sunWindow: document.getElementById("sun-window"),
+  sunDetail: document.getElementById("sun-detail"),
+  humidity: document.getElementById("m-humidity"),
+  wind: document.getElementById("m-wind"),
+  uv: document.getElementById("m-uv"),
+  rain: document.getElementById("m-rain"),
+  gusts: document.getElementById("gusts"),
+  windDir: document.getElementById("wind-dir"),
+  hourly: document.getElementById("hourly-chart"),
+  daily: document.getElementById("daily-chart"),
+  segments: document.getElementById("segments"),
+  descriptiveStats: document.getElementById("descriptive-stats"),
+  history: document.getElementById("history"),
+  anomaly: document.getElementById("anomaly"),
+  annualMean: document.getElementById("annual-mean"),
+  annualStd: document.getElementById("annual-std"),
+  distributionChart: document.getElementById("distribution-chart"),
+  climateTable: document.getElementById("climate-table"),
+  travelComparison: document.getElementById("travel-comparison"),
+  uvStrip: document.getElementById("uv-strip"),
+  nowcastStrip: document.getElementById("nowcast-strip"),
+  nowcastNote: document.getElementById("nowcast-note"),
+  dewpoint: document.getElementById("dewpoint"),
+  moonNext: document.getElementById("moon-next"),
+  moonNextDetail: document.getElementById("moon-next-detail"),
+  baseLayer: document.getElementById("base-layer"),
+  radarLayer: document.getElementById("radar-layer"),
+  radarRange: document.getElementById("radar-range"),
+  radarTime: document.getElementById("radar-time"),
+  playRadar: document.getElementById("play-radar")
+};
+
+let currentPlace = DEFAULT_PLACE;
+let radarFrames = [];
+let radarIndex = 0;
+let radarTimer = null;
+let radarPlaying = true;
+let suggestionTimer = null;
+let chosenSuggestion = null;
+
+const fmtHour = new Intl.DateTimeFormat("fr-CA", { hour: "2-digit", minute: "2-digit" });
+const fmtDay = new Intl.DateTimeFormat("fr-CA", { weekday: "short" });
+const fmtDate = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short" });
+
+function round(value, digits = 0) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "--";
+  return Number(value).toFixed(digits);
+}
+
+function cleanNumbers(values) {
+  return values.filter(v => v !== null && v !== undefined && Number.isFinite(v)).map(Number);
+}
+
+function quantile(sortedValues, p) {
+  if (!sortedValues.length) return NaN;
+  const pos = (sortedValues.length - 1) * p;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  const next = sortedValues[base + 1];
+  return next === undefined ? sortedValues[base] : sortedValues[base] + rest * (next - sortedValues[base]);
+}
+
+function describe(values) {
+  const xs = cleanNumbers(values).sort((a, b) => a - b);
+  const n = xs.length;
+  if (!n) return null;
+  const mean = xs.reduce((sum, v) => sum + v, 0) / n;
+  const variance = xs.reduce((sum, v) => sum + (v - mean) ** 2, 0) / n;
+  const sd = Math.sqrt(variance);
+  const median = quantile(xs, .5);
+  const q1 = quantile(xs, .25);
+  const q3 = quantile(xs, .75);
+  const skew = sd ? xs.reduce((sum, v) => sum + ((v - mean) / sd) ** 3, 0) / n : 0;
+  return {
+    n,
+    min: xs[0],
+    q1,
+    median,
+    q3,
+    max: xs[n - 1],
+    mean,
+    sd,
+    iqr: q3 - q1,
+    range: xs[n - 1] - xs[0],
+    cv: mean ? sd / Math.abs(mean) : 0,
+    skew
+  };
+}
+
+function statCard(label, value, detail = "") {
+  return `<div class="statbox"><div class="k">${label}</div><div class="v">${value}</div><div class="d">${detail}</div></div>`;
+}
+
+function dewPoint(temp, humidity) {
+  const a = 17.27;
+  const b = 237.7;
+  const gamma = (a * temp) / (b + temp) + Math.log(Math.max(1, humidity) / 100);
+  return (b * gamma) / (a - gamma);
+}
+
+function comfortLabel(feels, dew) {
+  if (feels >= 40) return "Très pénible";
+  if (feels >= 35) return "Lourd";
+  if (feels >= 30) return "Chaud humide";
+  if (dew >= 18) return "Humide";
+  if (dew <= 5) return "Sec";
+  return "Confortable";
+}
+
+function formatDuration(seconds) {
+  const minutes = Math.round(seconds / 60);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h + " h " + String(m).padStart(2, "0");
+}
+
+function moonInfo(date = new Date()) {
+  const synodic = 29.530588853;
+  const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14);
+  const days = (date.getTime() - knownNewMoon) / 86400000;
+  const age = ((days % synodic) + synodic) % synodic;
+  const illumination = (1 - Math.cos(2 * Math.PI * age / synodic)) / 2;
+  const phases = [
+    [1.84566, "Nouvelle lune", "🌑"],
+    [5.53699, "Premier croissant", "🌒"],
+    [9.22831, "Premier quartier", "🌓"],
+    [12.91963, "Gibbeuse croissante", "🌔"],
+    [16.61096, "Pleine lune", "🌕"],
+    [20.30228, "Gibbeuse décroissante", "🌖"],
+    [23.99361, "Dernier quartier", "🌗"],
+    [27.68493, "Dernier croissant", "🌘"],
+    [synodic, "Nouvelle lune", "🌑"]
+  ];
+  const phase = phases.find(([limit]) => age < limit) || phases[0];
+  return { age, illumination, name: phase[1], icon: phase[2] };
+}
+
+function nextFullMoon(date = new Date()) {
+  const synodic = 29.530588853;
+  const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14);
+  const days = (date.getTime() - knownNewMoon) / 86400000;
+  const cycle = Math.floor(days / synodic);
+  for (let c = cycle; c <= cycle + 2; c++) {
+    const when = new Date(knownNewMoon + (c * synodic + synodic / 2) * 86400000);
+    if (when > date) return when;
+  }
+  return new Date(date.getTime() + synodic * 86400000);
+}
+
+function normalDensity(x, mean, sd) {
+  if (!sd) return 0;
+  return Math.exp(-0.5 * ((x - mean) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
+}
+
+function codeToText(code) {
+  const map = {
+    0: "Ciel dégagé", 1: "Principalement dégagé", 2: "Partiellement nuageux", 3: "Couvert",
+    45: "Brouillard", 48: "Brouillard givrant", 51: "Bruine faible", 53: "Bruine modérée",
+    55: "Bruine dense", 56: "Bruine verglaçante", 57: "Bruine verglaçante dense",
+    61: "Pluie faible", 63: "Pluie modérée", 65: "Forte pluie", 66: "Pluie verglaçante",
+    67: "Forte pluie verglaçante", 71: "Neige faible", 73: "Neige modérée", 75: "Forte neige",
+    77: "Grains de neige", 80: "Averses faibles", 81: "Averses modérées", 82: "Averses violentes",
+    85: "Averses de neige", 86: "Fortes averses de neige", 95: "Orage", 96: "Orage avec grêle",
+    99: "Orage violent avec grêle"
+  };
+  return map[code] || "Conditions variables";
+}
+
+function codeToIcon(code, isDay = 1) {
+  if (code === 0) return isDay ? "☀" : "☾";
+  if ([1, 2].includes(code)) return isDay ? "◐" : "☾";
+  if (code === 3) return "☁";
+  if ([45, 48].includes(code)) return "≋";
+  if ([51, 53, 55, 56, 57].includes(code)) return "⋰";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "☂";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "✳";
+  if ([95, 96, 99].includes(code)) return "⚡";
+  return "•";
+}
+
+function direction(deg) {
+  if (deg === null || deg === undefined) return "--";
+  const names = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"];
+  return names[Math.round(deg / 22.5) % 16];
+}
+
+function setStatus(message, isError = false) {
+  els.status.textContent = message;
+  els.status.style.color = isError ? "#ffd1d7" : "";
+}
+
+function api(url) {
+  return fetch(url).then(response => {
+    if (!response.ok) throw new Error("Réponse météo indisponible");
+    return response.json();
+  });
+}
+
+async function geocode(query) {
+  const q = query.trim();
+  if (!q || /^g8v\s*2v3$/i.test(q)) return DEFAULT_PLACE;
+  const coordMatch = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (coordMatch) {
+    return {
+      name: "Coordonnées",
+      label: q,
+      latitude: Number(coordMatch[1]),
+      longitude: Number(coordMatch[2]),
+      country: ""
+    };
+  }
+  const url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(q) + "&count=1&language=fr&format=json";
+  const data = await api(url);
+  if (!data.results || !data.results.length) throw new Error("Lieu introuvable.");
+  const r = data.results[0];
+  return {
+    name: [r.name, r.admin1].filter(Boolean).join(", "),
+    label: r.country || q,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    country: r.country || ""
+  };
+}
+
+async function geocodeSuggestions(query) {
+  const q = query.trim();
+  if (q.length < 2 || /^g8v\s*2v3$/i.test(q)) return [];
+  const coordMatch = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (coordMatch) return [];
+  const url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(q) + "&count=5&language=fr&format=json";
+  const data = await api(url);
+  return (data.results || []).map(r => ({
+    name: [r.name, r.admin1].filter(Boolean).join(", "),
+    label: r.country || q,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    country: r.country || "",
+    display: [r.name, r.admin1, r.country].filter(Boolean).join(" · ")
+  }));
+}
+
+function renderSuggestions(items) {
+  if (!items.length) {
+    els.suggestions.classList.remove("show");
+    els.suggestions.innerHTML = "";
+    return;
+  }
+  els.suggestions.innerHTML = items.map((item, index) => `
+    <button class="suggestion" type="button" data-index="${index}">${item.display}</button>
+  `).join("");
+  els.suggestions.classList.add("show");
+  [...els.suggestions.querySelectorAll(".suggestion")].forEach(button => {
+    button.addEventListener("click", () => {
+      const place = items[Number(button.dataset.index)];
+      chosenSuggestion = place;
+      els.input.value = place.name;
+      renderSuggestions([]);
+      loadDashboard(place);
+    });
+  });
+}
+
+function forecastUrl(place) {
+  const current = [
+    "temperature_2m", "relative_humidity_2m", "apparent_temperature", "is_day",
+    "precipitation", "rain", "showers", "snowfall", "weather_code", "cloud_cover",
+    "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m"
+  ].join(",");
+  const hourly = [
+    "temperature_2m", "apparent_temperature", "precipitation_probability", "precipitation",
+    "weather_code", "cloud_cover", "wind_speed_10m", "wind_direction_10m",
+    "wind_gusts_10m", "uv_index", "relative_humidity_2m", "is_day"
+  ].join(",");
+  const daily = [
+    "weather_code", "temperature_2m_max", "temperature_2m_min", "uv_index_max",
+    "precipitation_probability_max", "precipitation_sum", "wind_speed_10m_max",
+    "wind_gusts_10m_max", "sunrise", "sunset", "daylight_duration", "sunshine_duration"
+  ].join(",");
+  const minutely15 = [
+    "temperature_2m", "precipitation", "rain", "weather_code",
+    "wind_speed_10m", "wind_gusts_10m", "is_day"
+  ].join(",");
+  return "https://api.open-meteo.com/v1/forecast?latitude=" + place.latitude +
+    "&longitude=" + place.longitude +
+    "&current=" + current +
+    "&hourly=" + hourly +
+    "&minutely_15=" + minutely15 +
+    "&daily=" + daily +
+    "&forecast_minutely_15=16" +
+    "&forecast_days=7&timezone=auto&wind_speed_unit=kmh&precipitation_unit=mm";
+}
+
+function localDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + d;
+}
+
+function historyUrl(place) {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const endYear = now.getFullYear() - 1;
+  const start = (endYear - 4) + "-" + month + "-" + day;
+  const end = endYear + "-" + month + "-" + day;
+  return "https://archive-api.open-meteo.com/v1/archive?latitude=" + place.latitude +
+    "&longitude=" + place.longitude +
+    "&start_date=" + start +
+    "&end_date=" + end +
+    "&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum" +
+    "&timezone=auto&wind_speed_unit=kmh&precipitation_unit=mm";
+}
+
+function annualHistoryUrl(place) {
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - 1);
+  const startDate = new Date(endDate);
+  startDate.setFullYear(startDate.getFullYear() - 1);
+  startDate.setDate(startDate.getDate() + 1);
+  return "https://archive-api.open-meteo.com/v1/archive?latitude=" + place.latitude +
+    "&longitude=" + place.longitude +
+    "&start_date=" + localDate(startDate) +
+    "&end_date=" + localDate(endDate) +
+    "&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum" +
+    "&timezone=auto&wind_speed_unit=kmh&precipitation_unit=mm";
+}
+
+function nearestIndex(times, target = new Date()) {
+  let best = 0;
+  let bestDiff = Infinity;
+  times.forEach((t, i) => {
+    const diff = Math.abs(new Date(t) - target);
+    if (diff < bestDiff) {
+      best = i;
+      bestDiff = diff;
+    }
+  });
+  return best;
+}
+
+function takeNextHours(hourly, count) {
+  const start = nearestIndex(hourly.time);
+  return Array.from({ length: count }, (_, offset) => {
+    const i = Math.min(start + offset, hourly.time.length - 1);
+    return {
+      time: hourly.time[i],
+      temp: hourly.temperature_2m[i],
+      feels: hourly.apparent_temperature[i],
+      pop: hourly.precipitation_probability[i],
+      precip: hourly.precipitation[i],
+      code: hourly.weather_code[i],
+      clouds: hourly.cloud_cover[i],
+      wind: hourly.wind_speed_10m[i],
+      windDir: hourly.wind_direction_10m[i],
+      gust: hourly.wind_gusts_10m[i],
+      uv: hourly.uv_index[i],
+      humidity: hourly.relative_humidity_2m[i],
+      isDay: hourly.is_day[i]
+    };
+  });
+}
+
+function takeMinutely15(minutely15) {
+  if (!minutely15 || !minutely15.time) return [];
+  return minutely15.time.map((time, i) => ({
+    time,
+    temp: minutely15.temperature_2m[i],
+    precipitation: minutely15.precipitation[i],
+    rain: minutely15.rain[i],
+    code: minutely15.weather_code[i],
+    wind: minutely15.wind_speed_10m[i],
+    gust: minutely15.wind_gusts_10m[i],
+    isDay: minutely15.is_day[i]
+  }));
+}
+
+function renderCurrent(data, hours) {
+  const c = data.current;
+  currentPlace.name = currentPlace.name || "Lieu choisi";
+  els.place.textContent = currentPlace.name;
+  els.coords.textContent = currentPlace.label + " · " + round(currentPlace.latitude, 3) + ", " + round(currentPlace.longitude, 3);
+  els.updated.textContent = "Mis à jour " + fmtHour.format(new Date(c.time));
+  els.tempNow.textContent = round(c.temperature_2m) + "°";
+  els.feels.textContent = "Ressenti " + round(c.apparent_temperature) + "°";
+  els.condition.textContent = codeToText(c.weather_code);
+  els.humidity.textContent = round(c.relative_humidity_2m) + "%";
+  els.wind.textContent = round(c.wind_speed_10m) + " km/h";
+  els.uv.textContent = round(hours[0].uv, 1);
+  els.rain.textContent = round(c.precipitation, 1) + " mm";
+  els.gusts.textContent = round(c.wind_gusts_10m) + " km/h";
+  els.windDir.textContent = direction(c.wind_direction_10m);
+
+  const maxPop = Math.max(...hours.slice(0, 12).map(h => h.pop || 0));
+  const maxUv = Math.max(...hours.map(h => h.uv || 0));
+  let note = "Journée plutôt stable";
+  if (c.temperature_2m >= 30 || c.apparent_temperature >= 35) note = "Chaleur élevée à surveiller";
+  if (maxPop >= 60) note = "Risque notable de précipitations";
+  if (maxUv >= 7) note = "Indice UV élevé";
+  if (c.wind_gusts_10m >= 45) note = "Rafales soutenues";
+  els.note.textContent = note;
+}
+
+function renderHeroExtras(forecast, hours, minutely15) {
+  const c = forecast.current;
+  const today = forecast.daily;
+  const sunrise = new Date(today.sunrise[0]);
+  const sunset = new Date(today.sunset[0]);
+  const daylight = today.daylight_duration[0];
+  const dew = dewPoint(c.temperature_2m, c.relative_humidity_2m);
+  const comfort = comfortLabel(c.apparent_temperature, dew);
+  const fullMoon = nextFullMoon(new Date(c.time));
+  els.comfort.textContent = comfort;
+  els.comfortDetail.textContent = "ressenti " + round(c.apparent_temperature) + "° · rosée " + round(dew, 1) + "°";
+  els.sunWindow.textContent = fmtHour.format(sunrise) + " → " + fmtHour.format(sunset);
+  els.sunDetail.textContent = "jour : " + formatDuration(daylight);
+  els.moonNext.textContent = "🌕 " + fmtDate.format(fullMoon);
+  els.moonNextDetail.textContent = fullMoon.toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" });
+  els.dewpoint.textContent = round(dew, 1) + "°";
+}
+
+function renderHourly(hours) {
+  const temps = hours.map(h => h.temp);
+  const min = Math.min(...temps) - 2;
+  const max = Math.max(...temps) + 2;
+  const width = 1040;
+  const height = 150;
+  const xStep = width / 24;
+  const points = hours.map((h, i) => {
+    const x = i * xStep + xStep / 2;
+    const y = 20 + (1 - (h.temp - min) / (max - min || 1)) * (height - 40);
+    return [x, y];
+  });
+  const path = points.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const area = path + " L " + (points.at(-1)[0]).toFixed(1) + " 164 L " + points[0][0].toFixed(1) + " 164 Z";
+
+  els.hourly.innerHTML = `
+    <svg class="chart-svg" viewBox="0 0 ${width} 172" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="tempArea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f7c843" stop-opacity=".32"/>
+          <stop offset="100%" stop-color="#f7c843" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${area}" fill="url(#tempArea)"></path>
+      <path d="${path}" fill="none" stroke="#f7c843" stroke-width="3" vector-effect="non-scaling-stroke"></path>
+      ${points.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.4" fill="#f7c843"></circle>`).join("")}
+    </svg>
+    <div class="hour-grid">
+      ${hours.map(h => `
+        <div class="hour-cell">
+          <div class="hour-temp">${round(h.temp)}°</div>
+          <div class="hour-icon">${codeToIcon(h.code, h.isDay)}</div>
+          <div class="hour-pop">${round(h.pop)}%</div>
+          <div class="hour-time">${fmtHour.format(new Date(h.time)).replace(":00", "h")}</div>
+        </div>
+      `).join("")}
+    </div>`;
+}
+
+function renderUv(hours) {
+  const maxUv = Math.max(1, ...hours.map(h => h.uv || 0));
+  els.uvStrip.innerHTML = hours.map(h => {
+    const pct = Math.max(2, (h.uv || 0) / Math.max(11, maxUv) * 100);
+    return `
+      <div class="uv-hour">
+        <div class="uv-track"><div class="uv-bar" style="height:${pct}%"></div></div>
+        <div class="uv-val">${round(h.uv, 1)}</div>
+        <div class="uv-time">${fmtHour.format(new Date(h.time)).replace(":00", "h")}</div>
+      </div>`;
+  }).join("");
+}
+
+function renderNowcast(slots) {
+  if (!slots.length) {
+    els.nowcastStrip.innerHTML = `<div class="error">Données aux 15 minutes indisponibles.</div>`;
+    return;
+  }
+  const visibleSlots = slots.slice(0, 8);
+  const maxPrecip = Math.max(.2, ...visibleSlots.map(s => s.precipitation || 0));
+  const total = visibleSlots.reduce((sum, s) => sum + (s.precipitation || 0), 0);
+  const nextWet = visibleSlots.find(s => (s.precipitation || 0) > 0);
+  els.nowcastStrip.innerHTML = visibleSlots.map(s => {
+    const pct = Math.max(3, (s.precipitation || 0) / maxPrecip * 100);
+    return `
+      <div class="nowcast-slot">
+        <div class="nowcast-mm">${round(s.precipitation, 1)}</div>
+        <div class="nowcast-bar" style="height:${pct}%"></div>
+        <div class="nowcast-icon">${codeToIcon(s.code, s.isDay)}</div>
+        <div class="nowcast-time">${fmtHour.format(new Date(s.time))}</div>
+      </div>`;
+  }).join("");
+
+  if (nextWet) {
+    const minutes = Math.max(0, Math.round((new Date(nextWet.time) - new Date(visibleSlots[0].time)) / 60000));
+    els.nowcastNote.textContent = "Signal de pluie dans environ " + minutes + " min. Accumulation prévue sur 2 h : " + round(total, 1) + " mm.";
+  } else {
+    els.nowcastNote.textContent = "Aucune accumulation prévue aux 15 minutes sur les 2 prochaines heures. Le radar reste le meilleur repère pour les averses très locales.";
+  }
+}
+
+function renderDaily(daily) {
+  const days = daily.time.map((time, i) => ({
+    time,
+    max: daily.temperature_2m_max[i],
+    min: daily.temperature_2m_min[i],
+    code: daily.weather_code[i],
+    pop: daily.precipitation_probability_max[i]
+  }));
+  const highs = days.map(d => d.max);
+  const lows = days.map(d => d.min);
+  const min = Math.min(...lows) - 3;
+  const max = Math.max(...highs) + 3;
+  const width = 700;
+  const height = 300;
+  const topY = 24;
+  const bottomY = 238;
+  const x = i => (i + .5) * width / days.length;
+  const y = value => topY + (1 - (value - min) / (max - min || 1)) * (bottomY - topY);
+  const highPoints = days.map((d, i) => [x(i), y(d.max)]);
+  const lowPoints = days.map((d, i) => [x(i), y(d.min)]);
+  const path = pts => pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+
+  els.daily.innerHTML = `
+    <svg class="daily-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${path(highPoints)}" fill="none" stroke="#f7c843" stroke-width="3" vector-effect="non-scaling-stroke"></path>
+      <path d="${path(lowPoints)}" fill="none" stroke="#8fc7ff" stroke-width="3" vector-effect="non-scaling-stroke"></path>
+      ${days.map((d, i) => `
+        <line x1="${x(i)}" x2="${x(i)}" y1="${y(d.max) + 8}" y2="${y(d.min) - 8}" stroke="rgba(255,255,255,.12)" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+        <circle cx="${x(i)}" cy="${y(d.max)}" r="4" fill="#f7c843"></circle>
+        <circle cx="${x(i)}" cy="${y(d.min)}" r="4" fill="#8fc7ff"></circle>
+        <text x="${x(i)}" y="${y(d.max) - 10}" fill="#f7c843" font-size="13" font-weight="800" text-anchor="middle">${round(d.max)}°</text>
+        <text x="${x(i)}" y="${y(d.min) + 21}" fill="#8fc7ff" font-size="13" font-weight="800" text-anchor="middle">${round(d.min)}°</text>
+      `).join("")}
+    </svg>
+    <div class="daily-labels">
+      ${days.map(d => `
+        <div class="day-label">
+          <div>${codeToIcon(d.code, 1)} ${round(d.pop)}%</div>
+          <strong>${fmtDay.format(new Date(d.time + "T12:00"))}</strong>
+        </div>
+      `).join("")}
+    </div>`;
+}
+
+function renderSegments(hours) {
+  const windows = [
+    ["Matin", 6, 11],
+    ["Après-midi", 12, 17],
+    ["Soir", 18, 23]
+  ];
+  const now = new Date(hours[0].time);
+  const dates = [...new Set(hours.map(h => h.time.slice(0, 10)))];
+  const cards = [];
+  dates.forEach(date => {
+    windows.forEach(([name, start, end]) => {
+      const list = hours.filter(h => h.time.startsWith(date) && new Date(h.time).getHours() >= start && new Date(h.time).getHours() <= end);
+      if (!list.length) return;
+      const periodEnd = new Date(date + "T" + String(end).padStart(2, "0") + ":59");
+      if (periodEnd < now) return;
+      const avg = list.reduce((sum, h) => sum + h.temp, 0) / list.length;
+      const pop = Math.max(...list.map(h => h.pop || 0));
+      const wind = Math.max(...list.map(h => h.wind || 0));
+      const code = list[Math.floor(list.length / 2)].code;
+      const labelDate = fmtDay.format(new Date(date + "T12:00"));
+      cards.push({ name, labelDate, avg, pop, wind, code });
+    });
+  });
+  els.segments.innerHTML = cards.slice(0, 6).map(card => `
+    <div class="segment">
+      <div class="part">${card.labelDate} · ${card.name}</div>
+      <div class="big">${codeToIcon(card.code, 1)} ${round(card.avg)}°</div>
+      <div class="small">Pluie ${round(card.pop)}%</div>
+      <div class="small">Vent ${round(card.wind)} km/h</div>
+    </div>
+  `).join("");
+}
+
+function renderHistory(data, currentTemp) {
+  if (!data.daily || !data.daily.time || !data.daily.time.length) {
+    els.history.innerHTML = `<div class="error">Historique indisponible.</div>`;
+    return;
+  }
+  const byMonthDay = data.daily.time
+    .map((time, i) => ({
+      year: time.slice(0, 4),
+      md: time.slice(5),
+      mean: data.daily.temperature_2m_mean[i],
+      max: data.daily.temperature_2m_max[i],
+      min: data.daily.temperature_2m_min[i],
+      rain: data.daily.precipitation_sum[i]
+    }))
+    .filter(d => d.md === data.daily.time.at(-1).slice(5))
+    .slice(-5);
+
+  const values = byMonthDay.flatMap(d => [d.min, d.max, currentTemp]).filter(v => v !== null && v !== undefined);
+  const minScale = Math.min(...values) - 2;
+  const maxScale = Math.max(...values) + 2;
+  const pos = value => 100 - ((value - minScale) / (maxScale - minScale || 1)) * 100;
+  els.history.innerHTML = byMonthDay.map(d => {
+    const top = pos(d.max);
+    const bottom = pos(d.min);
+    const avg = pos(d.mean);
+    return `
+      <div class="history-bar">
+        <div class="history-track">
+          <div class="history-range" style="top:${top}%;height:${Math.max(8, bottom - top)}%"></div>
+          <div class="history-avg" style="top:${avg}%"></div>
+        </div>
+        <div class="history-meta"><strong>${d.year}</strong>${round(d.min)}° / ${round(d.max)}°<br>moy. ${round(d.mean, 1)}°</div>
+      </div>`;
+  }).join("");
+
+  const means = byMonthDay.map(d => d.mean).filter(v => v !== null && v !== undefined);
+  const historicalMean = means.reduce((sum, v) => sum + v, 0) / means.length;
+  const diff = currentTemp - historicalMean;
+  const adjective = Math.abs(diff) < 2 ? "dans la normale récente" : diff > 0 ? "plus chaude que les dernières années" : "plus froide que les dernières années";
+  els.anomaly.textContent = "Aujourd'hui est " + adjective + " : " + round(currentTemp, 1) + "° maintenant contre une moyenne historique du jour de " + round(historicalMean, 1) + "° sur les années affichées.";
+}
+
+function renderDistributionChart(values) {
+  const xs = cleanNumbers(values);
+  const stats = describe(xs);
+  if (!stats) {
+    els.distributionChart.innerHTML = `<div class="error">Distribution indisponible.</div>`;
+    return;
+  }
+  const bins = 16;
+  const min = Math.floor(stats.min) - 1;
+  const max = Math.ceil(stats.max) + 1;
+  const binWidth = (max - min) / bins;
+  const counts = Array.from({ length: bins }, () => 0);
+  xs.forEach(value => {
+    const i = Math.min(bins - 1, Math.max(0, Math.floor((value - min) / binWidth)));
+    counts[i]++;
+  });
+  const normalCounts = Array.from({ length: 120 }, (_, i) => {
+    const x = min + (max - min) * i / 119;
+    return { x, y: normalDensity(x, stats.mean, stats.sd) * xs.length * binWidth };
+  });
+  const maxY = Math.max(...counts, ...normalCounts.map(p => p.y), 1);
+  const width = 760;
+  const height = 280;
+  const pad = { left: 34, right: 16, top: 18, bottom: 38 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+  const sx = value => pad.left + ((value - min) / (max - min)) * innerW;
+  const sy = value => pad.top + (1 - value / maxY) * innerH;
+  const path = normalCounts.map((p, i) => (i ? "L" : "M") + sx(p.x).toFixed(1) + " " + sy(p.y).toFixed(1)).join(" ");
+  const meanX = sx(stats.mean);
+  const medianX = sx(stats.median);
+
+  els.distributionChart.innerHTML = `
+    <svg class="dist-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Histogramme des températures moyennes quotidiennes">
+      <line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" stroke="rgba(255,255,255,.22)" vector-effect="non-scaling-stroke"></line>
+      ${counts.map((count, i) => {
+        const x0 = sx(min + i * binWidth);
+        const x1 = sx(min + (i + 1) * binWidth);
+        const y = sy(count);
+        return `<rect x="${x0 + 2}" y="${y}" width="${Math.max(1, x1 - x0 - 4)}" height="${height - pad.bottom - y}" rx="3" fill="rgba(75,195,255,.42)"></rect>`;
+      }).join("")}
+      <path d="${path}" fill="none" stroke="#f7c843" stroke-width="3" vector-effect="non-scaling-stroke"></path>
+      <line x1="${meanX}" x2="${meanX}" y1="${pad.top}" y2="${height - pad.bottom}" stroke="#ff6b35" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"></line>
+      <line x1="${medianX}" x2="${medianX}" y1="${pad.top}" y2="${height - pad.bottom}" stroke="#a78bfa" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"></line>
+      <text x="${pad.left}" y="16" fill="#a9a9ad" font-size="11">Températures quotidiennes + normale ajustée</text>
+      <text x="${width - pad.right}" y="16" fill="#a9a9ad" font-size="11" text-anchor="end">quotidien : μ ${round(stats.mean, 1)}° · σ ${round(stats.sd, 1)}° · méd. ${round(stats.median, 1)}°</text>
+      <text x="${meanX + 5}" y="${pad.top + 14}" fill="#ff6b35" font-size="10">moyenne quotidienne</text>
+      <text x="${medianX + 5}" y="${pad.top + 28}" fill="#a78bfa" font-size="10">médiane quotidienne</text>
+      <text x="${pad.left}" y="${height - 12}" fill="#70727a" font-size="10">${round(min)}°</text>
+      <text x="${width - pad.right}" y="${height - 12}" fill="#70727a" font-size="10" text-anchor="end">${round(max)}°</text>
+    </svg>`;
+}
+
+function renderDescriptiveStats(hours, minutely15, climateRows) {
+  const tempStats = describe(hours.map(h => h.temp));
+  const popStats = describe(hours.map(h => h.pop));
+  const windStats = describe(hours.map(h => h.wind));
+  const uvStats = describe(hours.map(h => h.uv));
+  const precipStats = describe(minutely15.map(s => s.precipitation));
+  const climateStats = describe(climateRows.map(row => row.avg));
+  const sections = [];
+  if (tempStats) {
+    sections.push(`
+      <div class="stat-section">
+        <h3>Température prévue · 24 h</h3>
+        <div class="stats-grid">
+          ${statCard("Moyenne", round(tempStats.mean, 1) + "°", "n = " + tempStats.n)}
+          ${statCard("Médiane", round(tempStats.median, 1) + "°", "Q2")}
+          ${statCard("Écart-type", round(tempStats.sd, 2) + "°", "dispersion")}
+          ${statCard("Q1 / Q3", round(tempStats.q1, 1) + "° / " + round(tempStats.q3, 1) + "°", "IQR " + round(tempStats.iqr, 1) + "°")}
+          ${statCard("Min / Max", round(tempStats.min, 1) + "° / " + round(tempStats.max, 1) + "°", "étendue " + round(tempStats.range, 1) + "°")}
+        </div>
+      </div>`);
+  }
+  if (climateStats) {
+    sections.push(`
+      <div class="stat-section">
+        <h3>Moyennes mensuelles · 12 mois</h3>
+        <div class="stats-grid">
+          ${statCard("Moyenne", round(climateStats.mean, 1) + "°", "moyenne des mois")}
+          ${statCard("Médiane", round(climateStats.median, 1) + "°", "Q2")}
+          ${statCard("Écart-type", round(climateStats.sd, 2) + "°", "sur 12 moyennes")}
+          ${statCard("Q1 / Q3", round(climateStats.q1, 1) + "° / " + round(climateStats.q3, 1) + "°", "IQR " + round(climateStats.iqr, 1) + "°")}
+          ${statCard("Min / Max", round(climateStats.min, 1) + "° / " + round(climateStats.max, 1) + "°", "saisonnalité")}
+          ${statCard("P10", round(quantile(cleanNumbers(climateRows.map(r => r.avg)).sort((a,b)=>a-b), .1), 1) + "°", "10e percentile")}
+        </div>
+      </div>`);
+  }
+  els.descriptiveStats.innerHTML = sections.join("");
+}
+
+function renderClimateTable(data) {
+  if (!data.daily || !data.daily.time || !data.daily.time.length) {
+    els.climateTable.innerHTML = `<tbody><tr><td>Historique indisponible.</td></tr></tbody>`;
+    return [];
+  }
+  const dailyMeans = cleanNumbers(data.daily.temperature_2m_mean);
+  renderDistributionChart(dailyMeans);
+  const months = new Map();
+  data.daily.time.forEach((time, i) => {
+    const key = time.slice(0, 7);
+    if (!months.has(key)) months.set(key, []);
+    months.get(key).push({
+      mean: data.daily.temperature_2m_mean[i],
+      max: data.daily.temperature_2m_max[i],
+      min: data.daily.temperature_2m_min[i],
+      rain: data.daily.precipitation_sum[i],
+      snow: data.daily.snowfall_sum ? data.daily.snowfall_sum[i] : 0
+    });
+  });
+  const rows = [...months.entries()].map(([key, values]) => {
+    const clean = values.filter(v => v.mean !== null && v.mean !== undefined);
+    const tempStats = describe(clean.map(v => v.mean));
+    const avg = tempStats.mean;
+    const high = Math.max(...clean.map(v => v.max));
+    const low = Math.min(...clean.map(v => v.min));
+    const rain = clean.reduce((sum, v) => sum + (v.rain || 0), 0);
+    const snow = clean.reduce((sum, v) => sum + (v.snow || 0), 0);
+    return { key, avg, median: tempStats.median, sd: tempStats.sd, q1: tempStats.q1, q3: tempStats.q3, high, low, rain, snow, days: clean.length };
+  }).filter(row => row.days > 0).slice(-12);
+
+  const monthlyMeans = rows.map(row => row.avg);
+  const annualMean = monthlyMeans.reduce((sum, v) => sum + v, 0) / monthlyMeans.length;
+  const variance = monthlyMeans.reduce((sum, v) => sum + (v - annualMean) ** 2, 0) / monthlyMeans.length;
+  const annualStd = Math.sqrt(variance);
+  els.annualMean.textContent = round(annualMean, 1) + "°";
+  els.annualStd.textContent = round(annualStd, 1) + "°";
+
+  els.climateTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Mois</th>
+        <th>Moy.</th>
+        <th>Méd.</th>
+        <th>σ</th>
+        <th>Q1</th>
+        <th>Q3</th>
+        <th>Min</th>
+        <th>Max</th>
+        <th>Précipitations</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(row => {
+        const date = new Date(row.key + "-15T12:00");
+        return `
+          <tr>
+            <td>${date.toLocaleDateString("fr-CA", { month: "long", year: "numeric" })}</td>
+            <td><strong>${round(row.avg, 1)}°</strong></td>
+            <td>${round(row.median, 1)}°</td>
+            <td>${round(row.sd, 1)}°</td>
+            <td class="muted">${round(row.q1, 1)}°</td>
+            <td class="muted">${round(row.q3, 1)}°</td>
+            <td class="muted">${round(row.low, 1)}°</td>
+            <td class="muted">${round(row.high, 1)}°</td>
+            <td>${round(row.rain)} mm pluie · ${round(row.snow, 1)} cm neige</td>
+          </tr>`;
+      }).join("")}
+    </tbody>`;
+  return rows;
+}
+
+function renderTravelComparison(place, forecast, homeForecast) {
+  if (!homeForecast || Math.abs(place.latitude - DEFAULT_PLACE.latitude) < .02 && Math.abs(place.longitude - DEFAULT_PLACE.longitude) < .02) {
+    els.travelComparison.innerHTML = `
+      <div class="compare-card">
+        <div class="city">Trois-Rivières</div>
+        <div class="temp">${round(forecast.current.temperature_2m)}°</div>
+        <div class="row">Ressenti ${round(forecast.current.apparent_temperature)}°</div>
+        <div class="row">${codeToText(forecast.current.weather_code)}</div>
+        <div class="row">Vent ${round(forecast.current.wind_speed_10m)} km/h · précip. ${round(forecast.current.precipitation, 1)} mm</div>
+      </div>
+      <div class="compare-card">
+        <div class="city">Destination</div>
+        <div class="temp">--</div>
+        <div class="row">Cherche un lieu, par exemple Gaspé.</div>
+        <div class="row">La comparaison apparaîtra ici.</div>
+      </div>`;
+    return;
+  }
+  const home = homeForecast.current;
+  const dest = forecast.current;
+  const delta = dest.temperature_2m - home.temperature_2m;
+  els.travelComparison.innerHTML = `
+      <div class="compare-card">
+        <div class="city">Trois-Rivières</div>
+        <div class="temp">${round(home.temperature_2m)}°</div>
+        <div class="row">Ressenti ${round(home.apparent_temperature)}°</div>
+        <div class="row">${codeToText(home.weather_code)}</div>
+        <div class="row">Vent ${round(home.wind_speed_10m)} km/h · précip. ${round(home.precipitation, 1)} mm</div>
+      </div>
+    <div class="compare-card">
+      <div class="city">${place.name}</div>
+      <div class="temp">${round(dest.temperature_2m)}°</div>
+      <div class="row">Ressenti ${round(dest.apparent_temperature)}°</div>
+      <div class="row">${delta >= 0 ? "+" : ""}${round(delta, 1)}° vs maison · ${codeToText(dest.weather_code)}</div>
+      <div class="row">Vent ${round(dest.wind_speed_10m)} km/h · précip. ${round(dest.precipitation, 1)} mm</div>
+    </div>`;
+}
+
+function lonLatToTile(lon, lat, z) {
+  const latRad = lat * Math.PI / 180;
+  const n = 2 ** z;
+  return {
+    x: (lon + 180) / 360 * n,
+    y: (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n
+  };
+}
+
+function renderTiles(layer, place, frame) {
+  const z = 7;
+  const center = lonLatToTile(place.longitude, place.latitude, z);
+  const map = document.getElementById("map");
+  const w = map.clientWidth;
+  const h = map.clientHeight;
+  const centerPx = { x: center.x * 256, y: center.y * 256 };
+  const startX = Math.floor((centerPx.x - w / 2) / 256);
+  const endX = Math.floor((centerPx.x + w / 2) / 256);
+  const startY = Math.floor((centerPx.y - h / 2) / 256);
+  const endY = Math.floor((centerPx.y + h / 2) / 256);
+  const tiles = [];
+  for (let x = startX; x <= endX; x++) {
+    for (let y = startY; y <= endY; y++) {
+      const left = x * 256 - centerPx.x + w / 2;
+      const top = y * 256 - centerPx.y + h / 2;
+      const wrappedX = ((x % (2 ** z)) + (2 ** z)) % (2 ** z);
+      const src = frame
+        ? "https://tilecache.rainviewer.com" + frame.path + "/256/" + z + "/" + wrappedX + "/" + y + "/2/1_1.png"
+        : "https://tile.openstreetmap.org/" + z + "/" + wrappedX + "/" + y + ".png";
+      tiles.push(`<img class="tile" alt="" src="${src}" style="left:${left}px;top:${top}px">`);
+    }
+  }
+  layer.innerHTML = tiles.join("");
+}
+
+function setRadarFrame(index) {
+  if (!radarFrames.length) return;
+  radarIndex = Math.max(0, Math.min(index, radarFrames.length - 1));
+  els.radarRange.value = String(radarIndex);
+  renderTiles(els.radarLayer, currentPlace, radarFrames[radarIndex]);
+  els.radarTime.textContent = new Date(radarFrames[radarIndex].time * 1000).toLocaleString("fr-CA", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+async function loadRadar(place) {
+  renderTiles(els.baseLayer, place, null);
+  try {
+    const data = await api("https://api.rainviewer.com/public/weather-maps.json");
+    radarFrames = [...(data.radar.past || []), ...(data.radar.nowcast || [])].slice(-14);
+    if (!radarFrames.length) throw new Error("Aucune image radar.");
+    els.radarRange.max = String(radarFrames.length - 1);
+    setRadarFrame(Math.max(0, radarFrames.length - 6));
+    startRadar();
+  } catch (err) {
+    els.radarLayer.innerHTML = `<div class="error" style="margin:14px;">Radar indisponible pour le moment.</div>`;
+    els.radarTime.textContent = "--";
+  }
+}
+
+function startRadar() {
+  clearInterval(radarTimer);
+  radarPlaying = true;
+  els.playRadar.textContent = "Pause";
+  radarTimer = setInterval(() => {
+    if (!radarFrames.length) return;
+    setRadarFrame((radarIndex + 1) % radarFrames.length);
+  }, 850);
+}
+
+function stopRadar() {
+  clearInterval(radarTimer);
+  radarPlaying = false;
+  els.playRadar.textContent = "Lecture";
+}
+
+async function loadDashboard(place) {
+  currentPlace = place;
+  setStatus("Chargement des données météo...");
+  els.place.textContent = place.name;
+  els.coords.textContent = place.label;
+  try {
+    const needsHomeComparison = !(Math.abs(place.latitude - DEFAULT_PLACE.latitude) < .02 && Math.abs(place.longitude - DEFAULT_PLACE.longitude) < .02);
+    const [forecast, history, annualHistory] = await Promise.all([
+      api(forecastUrl(place)),
+      api(historyUrl(place)),
+      api(annualHistoryUrl(place))
+    ]);
+    const homeForecast = needsHomeComparison ? await api(forecastUrl(DEFAULT_PLACE)) : null;
+    const hours24 = takeNextHours(forecast.hourly, 24);
+    const hours60 = takeNextHours(forecast.hourly, 60);
+    const minutely15 = takeMinutely15(forecast.minutely_15);
+    renderCurrent(forecast, hours24);
+    renderHeroExtras(forecast, hours24, minutely15);
+    renderHourly(hours24);
+    renderUv(hours24);
+    renderNowcast(minutely15);
+    renderDaily(forecast.daily);
+    renderSegments(hours60);
+    renderHistory(history, forecast.current.temperature_2m);
+    const climateRows = renderClimateTable(annualHistory);
+    renderDescriptiveStats(hours24, minutely15, climateRows);
+    renderTravelComparison(place, forecast, homeForecast);
+    setStatus("Données chargées pour " + place.name + ".");
+    loadRadar(place);
+  } catch (err) {
+    setStatus(err.message || "Erreur de chargement.", true);
+  }
+}
+
+els.form.addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    setStatus("Recherche du lieu...");
+    const place = chosenSuggestion && chosenSuggestion.name === els.input.value ? chosenSuggestion : await geocode(els.input.value);
+    renderSuggestions([]);
+    loadDashboard(place);
+  } catch (err) {
+    setStatus(err.message || "Lieu introuvable.", true);
+  }
+});
+
+els.input.addEventListener("input", () => {
+  chosenSuggestion = null;
+  clearTimeout(suggestionTimer);
+  const query = els.input.value;
+  suggestionTimer = setTimeout(async () => {
+    try {
+      const items = await geocodeSuggestions(query);
+      if (els.input.value === query) renderSuggestions(items);
+    } catch (err) {
+      renderSuggestions([]);
+    }
+  }, 280);
+});
+
+els.radarRange.addEventListener("input", event => {
+  stopRadar();
+  setRadarFrame(Number(event.target.value));
+});
+
+els.playRadar.addEventListener("click", () => {
+  if (radarPlaying) stopRadar();
+  else startRadar();
+});
+
+window.addEventListener("resize", () => {
+  renderTiles(els.baseLayer, currentPlace, null);
+  if (radarFrames.length) renderTiles(els.radarLayer, currentPlace, radarFrames[radarIndex]);
+});
+
+loadDashboard(DEFAULT_PLACE);
+</script>
+</body>
+</html>
