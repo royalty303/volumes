@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atmos</title>
+<title>ATMOS</title>
 <meta name="theme-color" content="#ff6b35">
 <meta name="apple-mobile-web-app-title" content="Atmos">
 <link rel="apple-touch-icon" href="atmos-icon.png">
@@ -137,7 +137,7 @@ h1 {
   display: grid;
   gap: 16px;
   background:
-    linear-gradient(145deg, rgba(255,98,42,.98), rgba(249,177,42,.86) 55%, rgba(91,173,255,.78)),
+    linear-gradient(145deg, rgba(255,98,42,.98), rgba(241,137,33,.92) 54%, rgba(196,151,50,.9)),
     var(--panel);
 }
 .place-row {
@@ -244,6 +244,29 @@ h1 {
   display: grid;
   gap: 14px;
 }
+.hero-advisory {
+  display: none;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: rgba(15,16,18,.22);
+  border: 1px solid rgba(255,255,255,.16);
+  color: #fff;
+}
+.hero-advisory.show { display: block; }
+.hero-advisory .k {
+  display: block;
+  color: rgba(255,255,255,.72);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.hero-advisory .v {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 700;
+}
 .hero .metric {
   background: rgba(15,16,18,.18);
   border-color: rgba(255,255,255,.14);
@@ -273,6 +296,9 @@ h1 {
 }
 .hero .panel-mini .mini-head {
   color: rgba(255,255,255,.75);
+}
+.hero .mini-note {
+  color: rgba(255,255,255,.8);
 }
 .hero-metric {
   min-width: 0;
@@ -829,8 +855,7 @@ h1 {
 <main class="app">
   <header>
     <div>
-      <h1>Atmos</h1>
-      <p class="subhead">Tableau de bord local inspiré des vues très visuelles de Mercury. Données météo par Open-Meteo, radar par RainViewer.</p>
+      <h1>ATMOS</h1>
     </div>
     <form class="search" id="search-form">
       <input id="place-input" type="search" value="G8V 2V3" autocomplete="off" aria-label="Lieu ou ville" placeholder="Ville, code postal ou coordonnées">
@@ -881,6 +906,10 @@ h1 {
             <div class="mini-head"><span>Pluie imminente</span><span>2 prochaines heures · 15 min</span></div>
             <div class="nowcast-strip compact" id="nowcast-strip"></div>
             <div class="mini-note" id="nowcast-note">Analyse des précipitations aux 15 minutes.</div>
+          </div>
+          <div class="hero-advisory" id="hero-advisory">
+            <span class="k">À surveiller</span>
+            <span class="v" id="hero-advisory-text"></span>
           </div>
         </div>
       </article>
@@ -996,6 +1025,8 @@ const els = {
   feels: document.getElementById("feels"),
   condition: document.getElementById("condition"),
   note: document.getElementById("weather-note"),
+  advisory: document.getElementById("hero-advisory"),
+  advisoryText: document.getElementById("hero-advisory-text"),
   comfort: document.getElementById("comfort"),
   comfortDetail: document.getElementById("comfort-detail"),
   sunWindow: document.getElementById("sun-window"),
@@ -1145,6 +1176,31 @@ function nextFullMoon(date = new Date()) {
     if (when > date) return when;
   }
   return new Date(date.getTime() + synodic * 86400000);
+}
+
+function buildAdvisory(current, hours, minutely15, moon, dew) {
+  const now = new Date(current.time);
+  const hour = now.getHours();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const evening = hour >= 18 || hour <= 4;
+  const nextSix = hours.slice(0, 6);
+  const maxPop = Math.max(...nextSix.map(h => h.pop || 0));
+  const maxWind = Math.max(...nextSix.map(h => h.wind || 0), current.wind_speed_10m || 0);
+  const maxGust = Math.max(...nextSix.map(h => h.gust || 0), current.wind_gusts_10m || 0);
+  const maxUv = Math.max(...hours.slice(0, 12).map(h => h.uv || 0));
+  const rainSoon = minutely15.slice(0, 8).reduce((sum, s) => sum + (s.precipitation || 0), 0);
+  const lowClouds = (current.cloud_cover || 0) <= 35;
+  const perseidsWindow = month === 8 && day >= 10 && day <= 13;
+
+  if (maxGust >= 45) return "Rafales soutenues : prudence avec les objets légers dehors et les activités sur l'eau.";
+  if (rainSoon > 0.5 || maxPop >= 65) return "Averses probables à court terme : le radar est le meilleur repère pour suivre leur déplacement.";
+  if (maxUv >= 7) return "Indice UV élevé : crème solaire, lunettes et ombre aux heures fortes.";
+  if (dew >= 20 && current.apparent_temperature >= 26) return "Air lourd ce soir : l'humidité risque de rendre l'extérieur moins confortable.";
+  if (perseidsWindow && evening && lowClouds && maxPop < 35) return "Belle fenêtre possible pour observer les Perséides si le ciel reste dégagé.";
+  if (evening && lowClouds && maxPop < 35 && moon.illumination < .75) return "Belle soirée potentielle pour observer le ciel : peu de nuages prévus à court terme.";
+  if (month >= 5 && month <= 9 && maxGust >= 30 && maxPop < 25) return "Temps sec et venteux : vérifier les consignes locales avant tout feu extérieur.";
+  return "";
 }
 
 function codeToText(code) {
@@ -1404,6 +1460,7 @@ function renderHeroExtras(forecast, hours, minutely15) {
   const daylight = today.daylight_duration[0];
   const dew = dewPoint(c.temperature_2m, c.relative_humidity_2m);
   const comfort = comfortLabel(c.apparent_temperature, dew);
+  const moon = moonInfo(new Date(c.time));
   const fullMoon = nextFullMoon(new Date(c.time));
   els.comfort.textContent = comfort;
   els.comfortDetail.textContent = "ressenti " + round(c.apparent_temperature) + "° · rosée " + round(dew, 1) + "°";
@@ -1412,6 +1469,9 @@ function renderHeroExtras(forecast, hours, minutely15) {
   els.moonNext.textContent = "🌕 " + fmtDate.format(fullMoon);
   els.moonNextDetail.textContent = fullMoon.toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" });
   els.dewpoint.textContent = round(dew, 1) + "°";
+  const advisory = buildAdvisory(c, hours, minutely15, moon, dew);
+  els.advisoryText.textContent = advisory;
+  els.advisory.classList.toggle("show", Boolean(advisory));
 }
 
 function renderHourly(hours) {
