@@ -691,16 +691,22 @@ h1 {
   gap: 4px;
   min-width: 790px;
   max-width: 100%;
-  align-items: end;
+  align-items: stretch;
   height: 142px;
 }
 .nowcast-slot {
   min-width: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: 1fr auto auto;
   justify-items: center;
-  gap: 5px;
+  gap: 4px;
   height: 100%;
+}
+.nowcast-track {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid rgba(45, 55, 65, .28);
 }
 .nowcast-mm {
   color: var(--rain);
@@ -746,14 +752,22 @@ h1 {
   grid-template-columns: repeat(12, minmax(0, 1fr));
 }
 .uv-strip.compact .uv-hour:nth-child(n+13) { display: none; }
-.uv-strip.compact .uv-time { font-size: 9px; }
+.uv-strip.compact .uv-time {
+  color: rgba(45, 55, 65, .78);
+  font-size: 9px;
+  font-weight: 700;
+}
 .nowcast-strip.compact {
   min-width: 0;
-  height: 94px;
+  height: 78px;
   grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 .nowcast-strip.compact .nowcast-slot:nth-child(n+9) { display: none; }
-.nowcast-strip.compact .nowcast-time { font-size: 9px; }
+.nowcast-strip.compact .nowcast-time {
+  color: rgba(45, 55, 65, .78);
+  font-size: 9px;
+  font-weight: 700;
+}
 .nowcast-strip.compact .nowcast-icon { display: none; }
 .mini-note {
   margin-top: 10px;
@@ -1539,9 +1553,8 @@ function renderNowcast(slots) {
     const pct = Math.max(3, (s.precipitation || 0) / maxPrecip * 100);
     return `
       <div class="nowcast-slot">
+        <div class="nowcast-track"><div class="nowcast-bar" style="height:${pct}%"></div></div>
         <div class="nowcast-mm">${round(s.precipitation, 1)}</div>
-        <div class="nowcast-bar" style="height:${pct}%"></div>
-        <div class="nowcast-icon">${codeToIcon(s.code, s.isDay)}</div>
         <div class="nowcast-time">${fmtHour.format(new Date(s.time))}</div>
       </div>`;
   }).join("");
