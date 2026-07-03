@@ -958,7 +958,7 @@ h1 {
           <div class="metric"><div class="k">Écart-type mensuel</div><div class="v" id="annual-std">--</div><div class="d">dispersion des moyennes mensuelles</div></div>
         </div>
         <div class="dist-chart" id="distribution-chart"></div>
-        <div class="mini-note" id="distribution-note">Histogramme : températures moyennes quotidiennes. Les cartes du haut : moyennes mensuelles.</div>
+        <div class="mini-note" id="distribution-note">Chaque bande représente la température moyenne d'un mois. Les valeurs au-dessus sont les moyennes mensuelles.</div>
         <div class="wide-scroll">
           <table class="history-table" id="climate-table"></table>
         </div>
@@ -1145,11 +1145,6 @@ function nextFullMoon(date = new Date()) {
     if (when > date) return when;
   }
   return new Date(date.getTime() + synodic * 86400000);
-}
-
-function normalDensity(x, mean, sd) {
-  if (!sd) return 0;
-  return Math.exp(-0.5 * ((x - mean) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
 }
 
 function codeToText(code) {
@@ -1618,56 +1613,45 @@ function renderHistory(data, currentTemp) {
   els.anomaly.textContent = "Aujourd'hui est " + adjective + " : " + round(currentTemp, 1) + "° maintenant contre une moyenne historique du jour de " + round(historicalMean, 1) + "° sur les années affichées.";
 }
 
-function renderDistributionChart(values) {
-  const xs = cleanNumbers(values);
-  const stats = describe(xs);
+function renderDistributionChart(rows) {
+  const values = cleanNumbers(rows.map(row => row.avg));
+  const stats = describe(values);
   if (!stats) {
-    els.distributionChart.innerHTML = `<div class="error">Distribution indisponible.</div>`;
+    els.distributionChart.innerHTML = `<div class="error">Graphique mensuel indisponible.</div>`;
     return;
   }
-  const bins = 16;
-  const min = Math.floor(stats.min) - 1;
-  const max = Math.ceil(stats.max) + 1;
-  const binWidth = (max - min) / bins;
-  const counts = Array.from({ length: bins }, () => 0);
-  xs.forEach(value => {
-    const i = Math.min(bins - 1, Math.max(0, Math.floor((value - min) / binWidth)));
-    counts[i]++;
-  });
-  const normalCounts = Array.from({ length: 120 }, (_, i) => {
-    const x = min + (max - min) * i / 119;
-    return { x, y: normalDensity(x, stats.mean, stats.sd) * xs.length * binWidth };
-  });
-  const maxY = Math.max(...counts, ...normalCounts.map(p => p.y), 1);
   const width = 760;
   const height = 280;
-  const pad = { left: 34, right: 16, top: 18, bottom: 38 };
+  const pad = { left: 34, right: 18, top: 34, bottom: 42 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
-  const sx = value => pad.left + ((value - min) / (max - min)) * innerW;
-  const sy = value => pad.top + (1 - value / maxY) * innerH;
-  const path = normalCounts.map((p, i) => (i ? "L" : "M") + sx(p.x).toFixed(1) + " " + sy(p.y).toFixed(1)).join(" ");
-  const meanX = sx(stats.mean);
-  const medianX = sx(stats.median);
+  const min = Math.floor(Math.min(0, stats.min) - 2);
+  const max = Math.ceil(stats.max + 2);
+  const y = value => pad.top + (1 - (value - min) / (max - min || 1)) * innerH;
+  const zeroY = y(0);
+  const step = innerW / rows.length;
+  const barW = Math.max(18, step * .68);
 
   els.distributionChart.innerHTML = `
-    <svg class="dist-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Histogramme des températures moyennes quotidiennes">
-      <line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" stroke="rgba(255,255,255,.22)" vector-effect="non-scaling-stroke"></line>
-      ${counts.map((count, i) => {
-        const x0 = sx(min + i * binWidth);
-        const x1 = sx(min + (i + 1) * binWidth);
-        const y = sy(count);
-        return `<rect x="${x0 + 2}" y="${y}" width="${Math.max(1, x1 - x0 - 4)}" height="${height - pad.bottom - y}" rx="3" fill="rgba(75,195,255,.42)"></rect>`;
+    <svg class="dist-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Moyennes mensuelles des températures">
+      <line x1="${pad.left}" y1="${zeroY}" x2="${width - pad.right}" y2="${zeroY}" stroke="rgba(255,255,255,.25)" vector-effect="non-scaling-stroke"></line>
+      <text x="${pad.left}" y="16" fill="#a9a9ad" font-size="11">Moyennes mensuelles · 12 derniers mois</text>
+      <text x="${width - pad.right}" y="16" fill="#a9a9ad" font-size="11" text-anchor="end">μ ${round(stats.mean, 1)}° · σ ${round(stats.sd, 1)}° · méd. ${round(stats.median, 1)}°</text>
+      ${rows.map((row, i) => {
+        const cx = pad.left + step * i + step / 2;
+        const top = y(Math.max(row.avg, 0));
+        const bottom = y(Math.min(row.avg, 0));
+        const h = Math.max(2, bottom - top);
+        const date = new Date(row.key + "-15T12:00");
+        const month = date.toLocaleDateString("fr-CA", { month: "short" }).slice(0, 1).toUpperCase();
+        return `
+          <rect x="${cx - barW / 2}" y="${top}" width="${barW}" height="${h}" rx="4" fill="rgba(75,195,255,.55)"></rect>
+          <text x="${cx}" y="${top - 7}" fill="#f7f4ed" font-size="10" font-weight="800" text-anchor="middle">${round(row.avg, 1)}°</text>
+          <text x="${cx}" y="${height - 14}" fill="#a9a9ad" font-size="11" font-weight="800" text-anchor="middle">${month}</text>
+        `;
       }).join("")}
-      <path d="${path}" fill="none" stroke="#f7c843" stroke-width="3" vector-effect="non-scaling-stroke"></path>
-      <line x1="${meanX}" x2="${meanX}" y1="${pad.top}" y2="${height - pad.bottom}" stroke="#ff6b35" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"></line>
-      <line x1="${medianX}" x2="${medianX}" y1="${pad.top}" y2="${height - pad.bottom}" stroke="#a78bfa" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"></line>
-      <text x="${pad.left}" y="16" fill="#a9a9ad" font-size="11">Températures quotidiennes + normale ajustée</text>
-      <text x="${width - pad.right}" y="16" fill="#a9a9ad" font-size="11" text-anchor="end">quotidien : μ ${round(stats.mean, 1)}° · σ ${round(stats.sd, 1)}° · méd. ${round(stats.median, 1)}°</text>
-      <text x="${meanX + 5}" y="${pad.top + 14}" fill="#ff6b35" font-size="10">moyenne quotidienne</text>
-      <text x="${medianX + 5}" y="${pad.top + 28}" fill="#a78bfa" font-size="10">médiane quotidienne</text>
-      <text x="${pad.left}" y="${height - 12}" fill="#70727a" font-size="10">${round(min)}°</text>
-      <text x="${width - pad.right}" y="${height - 12}" fill="#70727a" font-size="10" text-anchor="end">${round(max)}°</text>
+      <text x="${pad.left}" y="${height - 14}" fill="#70727a" font-size="10" text-anchor="end">${round(min)}°</text>
+      <text x="${pad.left}" y="${pad.top + 4}" fill="#70727a" font-size="10" text-anchor="end">${round(max)}°</text>
     </svg>`;
 }
 
@@ -1714,8 +1698,6 @@ function renderClimateTable(data) {
     els.climateTable.innerHTML = `<tbody><tr><td>Historique indisponible.</td></tr></tbody>`;
     return [];
   }
-  const dailyMeans = cleanNumbers(data.daily.temperature_2m_mean);
-  renderDistributionChart(dailyMeans);
   const months = new Map();
   data.daily.time.forEach((time, i) => {
     const key = time.slice(0, 7);
@@ -1745,6 +1727,7 @@ function renderClimateTable(data) {
   const annualStd = Math.sqrt(variance);
   els.annualMean.textContent = round(annualMean, 1) + "°";
   els.annualStd.textContent = round(annualStd, 1) + "°";
+  renderDistributionChart(rows);
 
   els.climateTable.innerHTML = `
     <thead>
