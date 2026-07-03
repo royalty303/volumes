@@ -68,7 +68,7 @@ h1 {
 }
 .search {
   display: grid;
-  grid-template-columns: minmax(190px, 290px) auto;
+  grid-template-columns: minmax(190px, 290px) auto auto auto;
   gap: 8px;
   align-items: center;
 }
@@ -94,6 +94,9 @@ h1 {
   padding: 0 14px;
 }
 .btn:hover { border-color: rgba(255,255,255,.34); }
+.btn-subtle {
+  color: var(--muted);
+}
 .status {
   grid-column: 1 / -1;
   min-height: 20px;
@@ -768,6 +771,9 @@ h1 {
   font-size: 9px;
   font-weight: 700;
 }
+.nowcast-strip.compact .nowcast-mm {
+  color: #fff;
+}
 .nowcast-strip.compact .nowcast-icon { display: none; }
 .mini-note {
   margin-top: 10px;
@@ -850,7 +856,7 @@ h1 {
 .error { color: #ffd1d7; border-color: rgba(255,79,100,.45); }
 @media (max-width: 980px) {
   header, .layout { grid-template-columns: 1fr; }
-  .search { grid-template-columns: 1fr auto; }
+  .search { grid-template-columns: 1fr auto auto auto; }
   .segments { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 620px) {
@@ -862,6 +868,8 @@ h1 {
   .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .map { height: 300px; }
   .radar-controls { grid-template-columns: 1fr; }
+  .search { grid-template-columns: 1fr 1fr; }
+  .search input { grid-column: 1 / -1; }
 }
 </style>
 </head>
@@ -874,6 +882,8 @@ h1 {
     <form class="search" id="search-form">
       <input id="place-input" type="search" value="G8V 2V3" autocomplete="off" aria-label="Lieu ou ville" placeholder="Ville, code postal ou coordonnées">
       <button class="btn" type="submit">Chercher</button>
+      <button class="btn" type="button" id="reload-btn">Recharger</button>
+      <button class="btn btn-subtle" type="button" id="default-btn">Définir par défaut</button>
       <div class="suggestions" id="place-suggestions"></div>
       <div class="status" id="status">Prêt.</div>
     </form>
@@ -1026,10 +1036,13 @@ const DEFAULT_PLACE = {
   longitude: -72.548,
   country: "Canada"
 };
+const DEFAULT_PLACE_STORAGE_KEY = "atmos.defaultPlace";
 
 const els = {
   form: document.getElementById("search-form"),
   input: document.getElementById("place-input"),
+  reloadBtn: document.getElementById("reload-btn"),
+  defaultBtn: document.getElementById("default-btn"),
   suggestions: document.getElementById("place-suggestions"),
   status: document.getElementById("status"),
   place: document.getElementById("place-name"),
@@ -1252,6 +1265,29 @@ function direction(deg) {
 function setStatus(message, isError = false) {
   els.status.textContent = message;
   els.status.style.color = isError ? "#ffd1d7" : "";
+}
+
+function readDefaultPlace() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DEFAULT_PLACE_STORAGE_KEY) || "null");
+    if (saved && Number.isFinite(saved.latitude) && Number.isFinite(saved.longitude)) {
+      return saved;
+    }
+  } catch (err) {
+    localStorage.removeItem(DEFAULT_PLACE_STORAGE_KEY);
+  }
+  return DEFAULT_PLACE;
+}
+
+function saveDefaultPlace(place) {
+  const saved = {
+    name: place.name,
+    label: place.label,
+    latitude: place.latitude,
+    longitude: place.longitude,
+    country: place.country || ""
+  };
+  localStorage.setItem(DEFAULT_PLACE_STORAGE_KEY, JSON.stringify(saved));
 }
 
 function api(url) {
@@ -1836,11 +1872,11 @@ function renderClimateTable(data) {
   return rows;
 }
 
-function renderTravelComparison(place, forecast, homeForecast) {
-  if (!homeForecast || Math.abs(place.latitude - DEFAULT_PLACE.latitude) < .02 && Math.abs(place.longitude - DEFAULT_PLACE.longitude) < .02) {
+function renderTravelComparison(place, forecast, homeForecast, homePlace) {
+  if (!homeForecast || Math.abs(place.latitude - homePlace.latitude) < .02 && Math.abs(place.longitude - homePlace.longitude) < .02) {
     els.travelComparison.innerHTML = `
       <div class="compare-card">
-        <div class="city">Trois-Rivières</div>
+        <div class="city">${homePlace.name}</div>
         <div class="temp">${round(forecast.current.temperature_2m)}°</div>
         <div class="row">Ressenti ${round(forecast.current.apparent_temperature)}°</div>
         <div class="row">${codeToText(forecast.current.weather_code)}</div>
@@ -1859,7 +1895,7 @@ function renderTravelComparison(place, forecast, homeForecast) {
   const delta = dest.temperature_2m - home.temperature_2m;
   els.travelComparison.innerHTML = `
       <div class="compare-card">
-        <div class="city">Trois-Rivières</div>
+        <div class="city">${homePlace.name}</div>
         <div class="temp">${round(home.temperature_2m)}°</div>
         <div class="row">Ressenti ${round(home.apparent_temperature)}°</div>
         <div class="row">${codeToText(home.weather_code)}</div>
@@ -1950,17 +1986,19 @@ function stopRadar() {
 
 async function loadDashboard(place) {
   currentPlace = place;
+  els.input.value = place.label || place.name || "";
   setStatus("Chargement des données météo...");
   els.place.textContent = place.name;
   els.coords.textContent = place.label;
   try {
-    const needsHomeComparison = !(Math.abs(place.latitude - DEFAULT_PLACE.latitude) < .02 && Math.abs(place.longitude - DEFAULT_PLACE.longitude) < .02);
+    const homePlace = readDefaultPlace();
+    const needsHomeComparison = !(Math.abs(place.latitude - homePlace.latitude) < .02 && Math.abs(place.longitude - homePlace.longitude) < .02);
     const [forecast, history, annualHistory] = await Promise.all([
       api(forecastUrl(place)),
       api(historyUrl(place)),
       api(annualHistoryUrl(place))
     ]);
-    const homeForecast = needsHomeComparison ? await api(forecastUrl(DEFAULT_PLACE)) : null;
+    const homeForecast = needsHomeComparison ? await api(forecastUrl(homePlace)) : null;
     const hours24 = takeNextHours(forecast.hourly, 24);
     const hours60 = takeNextHours(forecast.hourly, 60);
     const minutely15 = takeMinutely15(forecast.minutely_15);
@@ -1974,7 +2012,7 @@ async function loadDashboard(place) {
     renderHistory(history, forecast.current.temperature_2m);
     const climateRows = renderClimateTable(annualHistory);
     renderDescriptiveStats(hours24, minutely15, climateRows);
-    renderTravelComparison(place, forecast, homeForecast);
+    renderTravelComparison(place, forecast, homeForecast, homePlace);
     setStatus("Données chargées pour " + place.name + ".");
     loadRadar(place);
   } catch (err) {
@@ -1992,6 +2030,16 @@ els.form.addEventListener("submit", async event => {
   } catch (err) {
     setStatus(err.message || "Lieu introuvable.", true);
   }
+});
+
+els.reloadBtn.addEventListener("click", () => {
+  renderSuggestions([]);
+  loadDashboard(currentPlace);
+});
+
+els.defaultBtn.addEventListener("click", () => {
+  saveDefaultPlace(currentPlace);
+  setStatus("Lieu par défaut enregistré : " + currentPlace.name + ".");
 });
 
 els.input.addEventListener("input", () => {
@@ -2023,7 +2071,7 @@ window.addEventListener("resize", () => {
   if (radarFrames.length) renderTiles(els.radarLayer, currentPlace, radarFrames[radarIndex]);
 });
 
-loadDashboard(DEFAULT_PLACE);
+loadDashboard(readDefaultPlace());
 </script>
 </body>
 </html>
